@@ -1,0 +1,13 @@
+torch>=2.0.0           
+torchaudio>=2.0.0       
+torchvision            
+librosa>=0.10.0        
+numpy                   
+soundfile               
+scikit-learn            
+onnx                   
+onnxruntime            
+matplotlib             
+tqdm                    
+torchinfo              
+jupyter                
