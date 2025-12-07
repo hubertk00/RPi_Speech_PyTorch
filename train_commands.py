@@ -90,9 +90,10 @@ def main():
     num_pos = sum(labels)
     num_neg = len(labels) - num_pos
     X_train, X_val, y_train, y_val = train_test_split(file_paths, labels, test_size=0.3, stratify=labels)
+    
     train_dataset = Dataset(file_paths=X_train, labels=y_train, sample_rate=Config.SAMPLE_RATE, augment=True, noise_paths=Config.NOISE_PATHS)
     test_dataset = Dataset(file_paths=X_val, labels=y_val, sample_rate=Config.SAMPLE_RATE, augment=False)
-    
+
     train_loader = DataLoader(  train_dataset, 
                                 batch_size=Config.BATCH_SIZE, 
                                 shuffle=True, 
@@ -109,7 +110,7 @@ def main():
     
     model = MatchboxNet(num_classes=9, input_channels=40, B=3, R=1, C=64).to(device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=Config.LEARNING_RATE)
+    optimizer = optim.Adam(model.parameters(), lr=Config.LEARNING_RATE, weight_decay=1e-4)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=2)
 
     best_val_loss = float('inf')
