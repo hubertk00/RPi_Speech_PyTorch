@@ -35,7 +35,7 @@ class AudioAugmentation(nn.Module):
         noise = torch.randn_like(waveform) * noise_level
         return waveform + noise
     
-    def apply_background_noise(self, waveform, min_snr=7, max_snr=20):
+    def apply_background_noise(self, waveform, min_snr=8, max_snr=20):
         if not self.noise_library:
             return waveform
         noise = self.noise_library[torch.randint(0, len(self.noise_library), (1,)).item()]
@@ -97,7 +97,7 @@ class AudioAugmentation(nn.Module):
         return waveform
     
 class SpecAugment(nn.Module):
-    def __init__(self, p_augment=0.7):
+    def __init__(self, p_augment=0.4):
         super().__init__()
         self.p_augment = p_augment
         self.freq_mask = T.FrequencyMasking(freq_mask_param=8)
@@ -110,12 +110,12 @@ class SpecAugment(nn.Module):
         return features
     
 class FeatureExtractor(nn.Module):
-    def __init__(self, sample_rate=16000, n_mfcc=40):
+    def __init__(self, sample_rate=16000, n_mfcc=20):
         super().__init__()
         self.mfcc = T.MFCC(sample_rate=sample_rate, n_mfcc=n_mfcc, 
             melkwargs={
                 "n_fft": 512,
-                "n_mels": 64,
+                "n_mels": 40,
                 "hop_length": 160,
                 "mel_scale": "htk",
             })

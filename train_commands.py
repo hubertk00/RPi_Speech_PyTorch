@@ -7,10 +7,14 @@ import numpy as np
 from tqdm import tqdm 
 import os
 import random
+import argparse
 from neuralnet.dataset import Dataset
+from neuralnet.Resnet import ResNet8, ResNet14
 from neuralnet.MatchboxNet import MatchboxNet
+from neuralnet.CRNN import CRNN
 from neuralnet.utils import load_multiclass_data
 from train_wakeword import get_device
+from torch.utils.data import ConcatDataset
 
 class Config:
     DATA_ROOT = r"C:\Users\Hubert\Desktop\Praca_dyplomowa_PyTorch\Nagrania"
@@ -85,16 +89,40 @@ def validate(model, loader, criterion, device):
     return avg_loss, accuracy
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-o', '--output', type=str, default="best_commands.pth", 
+                        help="Ścieżka/nazwa pliku do zapisu najlepszego modelu (domyślnie: best_commands.pth)")
+    args = parser.parse_args()    
     device = get_device()
     file_paths, labels, class_to_idx = load_multiclass_data(root_path=Config.DATA_ROOT, commands=Config.COMMANDS)
     num_pos = sum(labels)
     num_neg = len(labels) - num_pos
-    X_train, X_val, y_train, y_val = train_test_split(file_paths, labels, test_size=0.3, stratify=labels)
+    X_train, X_val, y_train, y_val = train_test_split(file_paths, labels, test_size=0.2, stratify=labels)
     
-    train_dataset = Dataset(file_paths=X_train, labels=y_train, sample_rate=Config.SAMPLE_RATE, augment=True, noise_paths=Config.NOISE_PATHS)
+    clean_train_dataset = Dataset(
+        file_paths=X_train, 
+        labels=y_train, 
+        sample_rate=Config.SAMPLE_RATE, 
+        augment=False  
+    )
+    
+    num_versions = 7
+    augmented_datasets = []
+    
+    for i in range(num_versions):
+        aug_dataset = Dataset(
+            file_paths=X_train, 
+            labels=y_train, 
+            sample_rate=Config.SAMPLE_RATE, 
+            augment=True, 
+            noise_paths=Config.NOISE_PATHS
+        )
+        augmented_datasets.append(aug_dataset)
+    
+    full_train_dataset = ConcatDataset([clean_train_dataset] + augmented_datasets)    
     test_dataset = Dataset(file_paths=X_val, labels=y_val, sample_rate=Config.SAMPLE_RATE, augment=False)
 
-    train_loader = DataLoader(  train_dataset, 
+    train_loader = DataLoader(  full_train_dataset, 
                                 batch_size=Config.BATCH_SIZE, 
                                 shuffle=True, 
                                 num_workers=Config.NUM_WORKERS, 
@@ -108,10 +136,13 @@ def main():
                                 pin_memory=True, 
                                 persistent_workers=True)
     
-    model = MatchboxNet(num_classes=9, input_channels=40, B=3, R=1, C=64).to(device)
+    model = CRNN(input_channels=20, num_classes=9, k=1.5).to(device)
+    #model = MatchboxNet(input_channels=20, num_classes=9, B=3, R=1, C=64).to(device)
+    #model = ResNet8(input_channels=20, num_classes=9, k=1.0).to(device)
+    #model = ResNet14(input_channels=20, num_classes=9, k=1.0).to(device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=Config.LEARNING_RATE, weight_decay=1e-4)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=2)
+    optimizer = optim.Adam(model.parameters(), lr=Config.LEARNING_RATE, weight_decay=1e-5)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5)
 
     best_val_loss = float('inf')
 
@@ -127,7 +158,7 @@ def main():
         if val_loss < best_val_loss:
             print(f" >> Zapisywanie modelu ({best_val_loss:.4f} -> {val_loss:.4f})")
             best_val_loss = val_loss
-            torch.save(model.state_dict(), "best_commands.pth")
+            torch.save(model.state_dict(), args.output)
 
 if __name__ == '__main__':
     main()

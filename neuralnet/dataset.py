@@ -13,7 +13,7 @@ class Dataset(Dataset):
         self.augment = augment
 
         self.audio_aug = AudioAugmentation(sample_rate=sample_rate)
-        self.feature_extractor = FeatureExtractor(sample_rate=sample_rate, n_mfcc=40)
+        self.feature_extractor = FeatureExtractor(sample_rate=sample_rate, n_mfcc=20)
         self.spec_aug = SpecAugment(p_augment=0.5)
 
         if augment:
@@ -32,7 +32,7 @@ class Dataset(Dataset):
 
     def __getitem__(self, idx):
         audio_path = self.file_paths[idx]
-        waveform, sr = torchaudio.load(audio_path, backend="soundfile")
+        waveform, sr = torchaudio.load(audio_path)
 
         if sr != self.sample_rate:
             resampler = torchaudio.transforms.Resample(sr, self.sample_rate)
@@ -59,7 +59,6 @@ class Dataset(Dataset):
             waveform = F.pad(waveform, (0, padding))
 
         mfcc = self.feature_extractor(waveform).squeeze(0)
-        
         if self.augment:
             mfcc = self.spec_aug(mfcc)
         

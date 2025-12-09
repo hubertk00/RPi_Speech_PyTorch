@@ -7,8 +7,12 @@ import numpy as np
 from tqdm import tqdm 
 import os
 import random
+import argparse
 from neuralnet.dataset import Dataset
 from neuralnet.MatchboxNet import MatchboxNet
+from neuralnet.Resnet import ResNet8, ResNet14
+from neuralnet.MatchboxNet import MatchboxNet
+from neuralnet.CRNN import CRNN
 from neuralnet.utils import load_wake_word
 
 class Config:
@@ -95,7 +99,10 @@ def validate(model, loader, criterion, device):
     return avg_loss, accuracy
 
 def main():
-    #set_seed(Config.SEED)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-o', '--output', type=str, default="best_wakeword.pth", 
+                        help="Ścieżka/nazwa pliku do zapisu najlepszego modelu (domyślnie: best_wakeword.pth)")
+    args = parser.parse_args()    
     device = get_device()
 
     file_paths, labels = load_wake_word(Config.DATA_ROOT, wake_word=Config.WAKE_WORD)
@@ -104,7 +111,7 @@ def main():
     num_neg = len(labels) - num_pos
 
     X_train, X_val, y_train, y_val = train_test_split(
-        file_paths, labels, test_size=0.3, stratify=labels)
+        file_paths, labels, test_size=0.2, stratify=labels)
 
     train_dataset = Dataset(X_train, y_train, sample_rate=Config.SAMPLE_RATE, augment=True, noise_paths=Config.NOISE_PATHS)
     test_dataset = Dataset(X_val, y_val, sample_rate=Config.SAMPLE_RATE, augment=False)
@@ -127,11 +134,14 @@ def main():
         persistent_workers=True
     )
 
-    model = MatchboxNet(input_channels=40, num_classes=1, B=3, R=1, C=64).to(device)
+    #model = MatchboxNet(input_channels=20, num_classes=1, B=3, R=1, C=64).to(device)
+    #model = CRNN(input_channels=20, num_classes=1, k=1.5).to(device)
+    model = ResNet8(input_channels=20, num_classes=1, k=1.0).to(device)
+    #model = ResNet14(input_channels=20, num_classes=1, k=1.0).to(device)
     pos_weight = torch.tensor([num_neg / num_pos if num_pos > 0 else 1.0]).to(device)
     criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
     optimizer = optim.Adam(model.parameters(), lr=Config.LEARNING_RATE, weight_decay=1e-5)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=2)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5)
 
     best_val_loss = float('inf')
 
@@ -145,9 +155,8 @@ def main():
         scheduler.step(val_loss)
         
         if val_loss < best_val_loss:
-            print(f" >> Zapisywanie modelu ({best_val_loss:.4f} -> {val_loss:.4f})")
+            print(f"Zapisywanie modelu ({best_val_loss:.4f} -> {val_loss:.4f})")
             best_val_loss = val_loss
-            torch.save(model.state_dict(), "best_wakeword.pth")
-
+            torch.save(model.state_dict(), args.output)
 if __name__ == '__main__':
     main()
