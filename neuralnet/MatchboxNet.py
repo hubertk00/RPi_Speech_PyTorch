@@ -65,7 +65,7 @@ class MatchboxNet(nn.Module):
         for i in range(1, B):
             self.blocks.append(MainBlock(C, C, kernel_size=kernel_sizes[i], R=R))
 
-        self.epilogue_conv1 = nn.Conv1d(C, 128, kernel_size=29, dilation=2, padding='same')
+        self.epilogue_conv1 = nn.Conv1d(C, 128, kernel_size=29, dilation=2, padding=28)
         self.epilogue_bnorm1 = nn.BatchNorm1d(128)
 
         self.epilogue_conv2 = nn.Conv1d(128, 128, kernel_size=1)

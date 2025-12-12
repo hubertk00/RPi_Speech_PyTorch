@@ -15,6 +15,7 @@ from neuralnet.CRNN import CRNN
 from neuralnet.utils import load_multiclass_data
 from train_wakeword import get_device
 from torch.utils.data import ConcatDataset
+from collections import Counter
 
 class Config:
     DATA_ROOT = r"C:\Users\Hubert\Desktop\Praca_dyplomowa_PyTorch\Nagrania"
@@ -26,7 +27,7 @@ class Config:
     ]
     COMMANDS = ["Ciemniej", "Jasniej", "Muzyka", "Rolety", "Swiatlo", "Telewizor", "Wrocilem", "Wychodze", "Tlo"]    
     BATCH_SIZE = 32
-    LEARNING_RATE = 0.001
+    LEARNING_RATE = 0.0005
     EPOCHS = 50
     SAMPLE_RATE = 16000
     NUM_WORKERS = 4
@@ -91,7 +92,7 @@ def validate(model, loader, criterion, device):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-o', '--output', type=str, default="best_commands.pth", 
-                        help="Ścieżka/nazwa pliku do zapisu najlepszego modelu (domyślnie: best_commands.pth)")
+                        help="Ścieżka do zapisu modelu")
     args = parser.parse_args()    
     device = get_device()
     file_paths, labels, class_to_idx = load_multiclass_data(root_path=Config.DATA_ROOT, commands=Config.COMMANDS)
@@ -106,7 +107,7 @@ def main():
         augment=False  
     )
     
-    num_versions = 7
+    num_versions = 5
     augmented_datasets = []
     
     for i in range(num_versions):
@@ -119,7 +120,7 @@ def main():
         )
         augmented_datasets.append(aug_dataset)
     
-    full_train_dataset = ConcatDataset([clean_train_dataset] + augmented_datasets)    
+    full_train_dataset = ConcatDataset([clean_train_dataset] + augmented_datasets)  
     test_dataset = Dataset(file_paths=X_val, labels=y_val, sample_rate=Config.SAMPLE_RATE, augment=False)
 
     train_loader = DataLoader(  full_train_dataset, 
@@ -136,10 +137,11 @@ def main():
                                 pin_memory=True, 
                                 persistent_workers=True)
     
-    model = CRNN(input_channels=20, num_classes=9, k=1.5).to(device)
+    #model = CRNN(input_channels=20, num_classes=9, k=1.5).to(device)
     #model = MatchboxNet(input_channels=20, num_classes=9, B=3, R=1, C=64).to(device)
-    #model = ResNet8(input_channels=20, num_classes=9, k=1.0).to(device)
-    #model = ResNet14(input_channels=20, num_classes=9, k=1.0).to(device)
+    #model = ResNet8(input_channels=20, num_classes=9, k=1.5).to(device)
+    model = ResNet14(input_channels=20, num_classes=9, k=1.5).to(device)
+
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=Config.LEARNING_RATE, weight_decay=1e-5)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5)

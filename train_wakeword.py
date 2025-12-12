@@ -101,7 +101,7 @@ def validate(model, loader, criterion, device):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-o', '--output', type=str, default="best_wakeword.pth", 
-                        help="Ścieżka/nazwa pliku do zapisu najlepszego modelu (domyślnie: best_wakeword.pth)")
+                        help="Ścieżka do zapisu najlepszego modelu")
     args = parser.parse_args()    
     device = get_device()
 
@@ -136,8 +136,9 @@ def main():
 
     #model = MatchboxNet(input_channels=20, num_classes=1, B=3, R=1, C=64).to(device)
     #model = CRNN(input_channels=20, num_classes=1, k=1.5).to(device)
-    model = ResNet8(input_channels=20, num_classes=1, k=1.0).to(device)
-    #model = ResNet14(input_channels=20, num_classes=1, k=1.0).to(device)
+    #model = ResNet8(input_channels=20, num_classes=1, k=1.5).to(device)
+    model = ResNet14(input_channels=20, num_classes=1, k=1.5).to(device)
+
     pos_weight = torch.tensor([num_neg / num_pos if num_pos > 0 else 1.0]).to(device)
     criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
     optimizer = optim.Adam(model.parameters(), lr=Config.LEARNING_RATE, weight_decay=1e-5)

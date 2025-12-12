@@ -29,3 +29,6 @@ Thumbs.db
 
 audio_test.py
 *.pth
+*.onnx
+export_onnx.py
+onnx_audio_test.py

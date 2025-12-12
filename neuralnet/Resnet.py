@@ -99,7 +99,7 @@ class BCResBlock(nn.Module):
             )
         )
         self.f2 = nn.Sequential(*layers)
-        self.avg_gpool = nn.AdaptiveAvgPool2d((1, None))
+        self.avg_gpool = nn.AdaptiveAvgPool2d((1, 1))
 
         self.f1 = nn.Sequential(
             ConvBNReLU(
