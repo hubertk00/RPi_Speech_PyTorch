@@ -31,7 +31,7 @@ if __name__ == "__main__":
     for i in range(10):
         i = model(input_data)
 
-    num_iterations = 10000
+    num_iterations = 1000
     results = []
 
     for i in range(num_iterations):
@@ -40,5 +40,5 @@ if __name__ == "__main__":
         end_time = time.time()
         results.append(end_time - start_time)
 
-    average = statistics.mean(results)
+    average = statistics.mean(results)*1000
     print(f"Sredni czas inferencji: {average:.5f}")

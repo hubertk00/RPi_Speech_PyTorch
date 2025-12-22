@@ -27,8 +27,8 @@ class Config:
     ]
     COMMANDS = ["Ciemniej", "Jasniej", "Muzyka", "Rolety", "Swiatlo", "Telewizor", "Wrocilem", "Wychodze", "Tlo"]    
     BATCH_SIZE = 32
-    LEARNING_RATE = 0.0005
-    EPOCHS = 50
+    LEARNING_RATE = 0.001
+    EPOCHS = 75
     SAMPLE_RATE = 16000
     NUM_WORKERS = 4
     SEED = 42
@@ -98,7 +98,7 @@ def main():
     file_paths, labels, class_to_idx = load_multiclass_data(root_path=Config.DATA_ROOT, commands=Config.COMMANDS)
     num_pos = sum(labels)
     num_neg = len(labels) - num_pos
-    X_train, X_val, y_train, y_val = train_test_split(file_paths, labels, test_size=0.2, stratify=labels)
+    X_train, X_val, y_train, y_val = train_test_split(file_paths, labels, test_size=0.2, stratify=labels, random_state=Config.SEED)
     
     clean_train_dataset = Dataset(
         file_paths=X_train, 
@@ -160,7 +160,16 @@ def main():
         if val_loss < best_val_loss:
             print(f" >> Zapisywanie modelu ({best_val_loss:.4f} -> {val_loss:.4f})")
             best_val_loss = val_loss
-            torch.save(model.state_dict(), args.output)
+            checkpoint = {
+                'epoch': epoch,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'loss': val_loss,
+                'accuracy': val_acc,
+                'class_to_idx': class_to_idx,     
+                'commands': Config.COMMANDS,      
+            }
+            torch.save(checkpoint, args.output)
 
 if __name__ == '__main__':
     main()

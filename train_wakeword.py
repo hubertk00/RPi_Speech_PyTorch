@@ -158,6 +158,13 @@ def main():
         if val_loss < best_val_loss:
             print(f"Zapisywanie modelu ({best_val_loss:.4f} -> {val_loss:.4f})")
             best_val_loss = val_loss
-            torch.save(model.state_dict(), args.output)
+            checkpoint = {
+                'epoch': epoch,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'loss': val_loss,
+                'accuracy': val_acc,
+            }
+            torch.save(checkpoint, args.output)
 if __name__ == '__main__':
     main()
